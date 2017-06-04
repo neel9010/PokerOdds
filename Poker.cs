@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -41,7 +41,7 @@ namespace PokerWinning
 
     public static class Shuffle
     {
-        public static void ShuffleList<T>(this IList<T> list)
+        public static void Shuffle_Deck<T>(this IList<T> list)
         {
             int n = list.Count;
             Random rnd = new Random();
@@ -58,37 +58,43 @@ namespace PokerWinning
 
     public class Poker
     {
-        private static string[] deck = new string[52];
-        private static List<TableCards> table_cards = new List<TableCards>();
-        private static List<Player> players = null;
-        private static List<string> cards_list = new List<string>();
+        private static string[] New_Deck = new string[52];
+        private static List<TableCards> Table_Cards = new List<TableCards>();
+        private static List<Player> Players_List = null;
+        private static List<string> Card_Deck = new List<string>();
 
         private static void Main(string[] args)
         {
-            Deck.Initialize(deck);
+            Deck.Initialize(New_Deck);
 
             Console.WriteLine("---------------- Welcome to game of Texas Hold'em Poker ----------------");
             Console.WriteLine();
-            Console.WriteLine("Enter Number of players (Max 10): ");
+
+            Console.Write("Enter Number of players (Max 10): ");
             string players = Console.ReadLine();
             Console.WriteLine();
 
-            StartGame.CreatePlayers(int.Parse(players));
+            StartGame.Create_Players(int.Parse(players));
 
-            StartGame.deal_table_cards();
-            StartGame.deal_players_cards();
-            StartGame.begin_game();
+            Console.Write("Do you want to let computer pick cards? (Y/N) : ");
+            string input = Console.ReadLine();
+            Console.WriteLine();
+
+            StartGame.Deal_Table_Cards(input.ToUpper());
+            StartGame.Deal_Players_Card(input.ToUpper());
+
+            StartGame.Begin_Game();
 
             Console.Read();
         }
 
-        public class Deck
+        private class Deck
         {
             private static string suit = "C";
             private static int suit_num = 1;
             private static int card_num = 0;
 
-            internal static void Initialize(string[] deck)
+            public static void Initialize(string[] deck)
             {
                 for (int i = 1; i < 14; i++)
                 {
@@ -114,7 +120,15 @@ namespace PokerWinning
 
             private static string set_card(int i)
             {
-                return i == 1 ? "A" : i == 10 ? "0" : i == 11 ? "J" : i == 12 ? "Q" : i == 13 ? "K" : i.ToString();
+                switch (i)
+                {
+                    case 1: return "A";
+                    case 10: return "0";
+                    case 11: return "J";
+                    case 12: return "Q";
+                    case 13: return "K";
+                    default: return i.ToString();
+                }
             }
 
             private static string set_suit(int suit_num)
@@ -123,119 +137,187 @@ namespace PokerWinning
             }
         }
 
-        public class StartGame
+        protected internal class StartGame
         {
-            public string CARD_1 { get; set; }
-            public string CARD_2 { get; set; }
-            public string CARD_3 { get; set; }
+            private string CARD_1 { get; set; }
+            private string CARD_2 { get; set; }
+            private string CARD_3 { get; set; }
 
-            public static void CreatePlayers(int num)
+            public static void Create_Players(int num)
             {
                 for (int i = 0; i < num; i++)
                 {
                     Player player = new Player();
                     player.ID = i;
-                    player.NAME = SetPlayerName(i + 1).ToUpper();
+                    player.NAME = Set_Players_Name(i + 1).ToUpper();
 
-                    if (players == null)
+                    if (Players_List == null)
                     {
-                        players = new List<Player>();
+                        Players_List = new List<Player>();
                     }
 
-                    players.Add(player);
+                    Players_List.Add(player);
                 }
 
                 Console.WriteLine("Players For this game");
-                foreach (var player in players)
+                foreach (var player in Players_List)
                 {
                     Console.WriteLine(player.NAME);
                 }
 
                 Console.WriteLine();
-
+                Console.WriteLine("TOTAL CARDS IN DECK :" + New_Deck.Length);
+                Console.WriteLine("-------------------------------");
             }
 
-            public static void deal_table_cards()
+            public static void Deal_Table_Cards(string autopick = "Y")
             {
-                cards_list = deck.ToList();
+                Card_Deck = New_Deck.ToList();
                 StartGame Game = new StartGame();
-                string prev_card = "XX";
+
                 for (int card_num = 1; card_num < 4; card_num++)
                 {
                     int deal_card;
                     string table_card = null;
-
-                    do
+                    if (autopick.Trim().StartsWith("Y"))
                     {
                         Random r = new Random();
-                        var new_list = cards_list.Where(x => x != null).ToList();
-                        deal_card = r.Next(0, new_list.Count());
+                        deal_card = r.Next(0, Card_Deck.Count());
+                        table_card = Card_Deck[deal_card];
+                    }
+                    else
+                    {
+                        Console.Write("Enter Table Card " + card_num + " : ");
+                        table_card = Console.ReadLine();
 
-                        table_card = new_list[deal_card];
-                    } while (table_card == null);
-
-                    prev_card = table_card;
+                        table_card = table_card.ToUpper();
+                    }
 
                     TableCards tablecard = new TableCards();
                     tablecard.card = table_card;
-                    table_cards.Add(tablecard);
+                    Table_Cards.Add(tablecard);
 
-                    cards_list.Remove(table_card);
-
-                    Table_Cards(card_num, Game, table_card);
+                    Set_Table_Cards(card_num, Game, table_card);
+                    Card_Deck.Remove(table_card);
+                    Card_Deck.Shuffle_Deck();
                 }
 
-                var list_count = cards_list.Count();
-
-                Console.WriteLine("TOTAL CARDS IN DECK :" + deck.Length);
-                Console.WriteLine("-------------------------------");
                 Console.WriteLine("CARDS ON TABLE");
                 Console.WriteLine("CARD 1 : " + Game.CARD_1);
                 Console.WriteLine("CARD 2 : " + Game.CARD_2);
                 Console.WriteLine("CARD 3 : " + Game.CARD_3);
                 Console.WriteLine("-------------------------------");
                 Console.WriteLine();
-                Console.WriteLine("REMAINING CARDS AFTER TABLE DEAL :" + list_count);
+                Console.WriteLine("REMAINING CARDS AFTER TABLE DEAL :" + Card_Deck.Count());
                 Console.WriteLine("-------------------------------");
             }
 
-            public static void begin_game()
+            public static void Deal_Players_Card(string autopick = "")
+            {
+                foreach (var player in Players_List)
+                {
+                    int deal_card;
+                    string player_card = null;
+
+                    if (!autopick.Trim().StartsWith("Y"))
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Enter Cards For " + player.NAME);
+                    }
+
+                    for (int i = 1; i < 3; i++)
+                    {
+                        if (autopick.Trim().StartsWith("Y"))
+                        {
+                            Random r = new Random();
+                            deal_card = r.Next(0, Card_Deck.Count());
+                            player_card = Card_Deck[deal_card];
+                        }
+                        else
+                        {
+                            Console.Write("Card " + i + " : ");
+                            player_card = Console.ReadLine();
+                        }
+
+                        Set_Player_Card(player, player_card);
+                        Card_Deck.Shuffle_Deck();
+                    }
+                }
+
+                foreach (var player in Players_List)
+                {
+                    var player_cards_list = player.Cards.Where(x => x.player_id == player.ID).ToList();
+                    var card_count = 1;
+
+                    Console.WriteLine("Dealt Cards for Player : " + player.NAME);
+
+                    foreach (var card in player_cards_list)
+                    {
+                        Console.WriteLine("CARD" + card_count + ":" + card.card);
+                        card_count++;
+                    }
+
+                    Console.WriteLine("-------------------------------");
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("REMAINING CARDS AFTER PLAYER'S DEAL :" + Card_Deck.Count());
+                Console.WriteLine("-------------------------------");
+                Console.ReadLine();
+            }
+
+            public static void Set_Player_Card(Player player, string player_card)
+            {
+                Card dealed_card;
+                dealed_card = new Card();
+                dealed_card.card = player_card;
+                dealed_card.player_id = player.ID;
+                player.Cards.Add(dealed_card);
+
+                PossibleCards possible_card;
+                possible_card = new PossibleCards();
+                possible_card.card = dealed_card.card + " - (DEALT CARD AT BEGINING OF GAME)";
+                possible_card.player_id = player.ID;
+                player.PossibleCards.Add(possible_card);
+
+                Card_Deck.Remove(player_card);
+                Card_Deck.Shuffle_Deck();
+            }
+
+            public static void Begin_Game()
             {
                 List<string> possible_seven = new List<string>();
-                cards_list.ShuffleList();
-                var temp_list = cards_list.ToList();
+                Card_Deck.Shuffle_Deck();
+                var temp_card_list = Card_Deck.ToList();
 
-                var pos_count = 1;
+                var combination = 1;
+                int count = Card_Deck.Count();
 
-                int count = cards_list.Count();
                 do
                 {
                     int deal_card;
-                    string table_card = null;
+                    string hidden_card = "";
 
                     Random r = new Random();
-                    var new_list = cards_list.Where(x => x != null).ToList();
-                    deal_card = r.Next(0, new_list.Count());
+                    deal_card = r.Next(0, Card_Deck.Count());
+                    hidden_card = Card_Deck[deal_card];
+                    possible_seven.Add(hidden_card);
 
-                    table_card = new_list[deal_card];
+                    var temp_card = temp_card_list[deal_card];
+                    temp_card_list.Remove(temp_card);
+                    Card_Deck.Remove(temp_card);
 
-                    string first_card = table_card;
-                    possible_seven.Add(table_card);
+                    count = temp_card_list.Count();
 
-                    var tmp_itm = temp_list[deal_card];
-                    temp_list.Remove(tmp_itm);
-                    cards_list.Remove(tmp_itm);
-                    count = temp_list.Count();
-                    int player_count = players.Count();
-
-                    foreach (var item in cards_list.ToList())
+                    foreach (var Card in Card_Deck.ToList())
                     {
-                        Console.WriteLine("------------- COMBINATION - " + pos_count);
+                        Console.WriteLine("------------- COMBINATION - " + combination);
                         Console.WriteLine("-------------------------------");
-                        possible_seven.Add(item);
-                        foreach (var player in players)
+                        possible_seven.Add(Card);
+
+                        foreach (var player in Players_List)
                         {
-                            foreach (var tc_item in table_cards)
+                            foreach (var tc_item in Table_Cards)
                             {
                                 PossibleCards possible_card = new PossibleCards();
                                 possible_card.card = tc_item.card + " - (VISIBLE CARD ON TABLE)";
@@ -253,162 +335,58 @@ namespace PokerWinning
 
                             Console.WriteLine("POSSIBLE 7 CARDS FOR " + player.NAME);
                             Console.WriteLine();
+
                             foreach (var card in player.PossibleCards)
                             {
                                 Console.WriteLine(card.card);
                             }
 
-                            var list = player.PossibleCards.Skip(2).ToList();
-                            foreach (var pos_card in list)
+                            var deletion_list = player.PossibleCards.Skip(2).ToList();
+                            foreach (var pos_card in deletion_list)
                             {
                                 player.PossibleCards.Remove(pos_card);
                             }
 
-                            player_count--;
                             Console.WriteLine("-------------------------------");
                         }
 
-                        cards_list.ShuffleList();
+                        possible_seven.Remove(Card);
+                        Card_Deck.Shuffle_Deck();
 
-                        possible_seven.Remove(item);
-
-                        cards_list.ShuffleList();
-
-                        Console.WriteLine("CARDS LEFT IN DECK - " + (temp_list.Count - 1));
+                        Console.WriteLine("CARDS LEFT IN DECK - " + (temp_card_list.Count - 1));
                         Console.WriteLine("-------------------------------");
-                        pos_count++;
+                        combination++;
                     }
-                    possible_seven.Clear();
-                    cards_list = temp_list;
-                    cards_list.ShuffleList();
 
+                    possible_seven.Clear();
+                    Card_Deck = temp_card_list;
+                    Card_Deck.Shuffle_Deck();
                     count--;
                 } while (count > 0);
 
                 Console.ReadLine();
             }
 
-            public static void deal_players_cards()
-            {
-                foreach (var player in players)
-                {
-                    int deal_card;
-                    string player_card = null;
-                    Card dealed_card;
-                    PossibleCards possible_card;
-                    string prev_card = "XX";
-
-                    for (int i = 1; i < 3; i++)
-                    {
-                        bool random_card = false;
-                        do
-                        {
-                            Random r = new Random();
-                            var new_list = cards_list.Where(x => x != null).ToList();
-
-                            deal_card = r.Next(0, new_list.Count());
-                            player_card = new_list[deal_card];
-
-                            if (player.Cards == null)
-                            {
-                                player.Cards = new List<Card>();
-                            }
-
-                            var old_card = prev_card.Substring(1);
-                            var new_card = player_card.Substring(1);
-
-                            if (old_card != new_card)
-                            {
-                                dealed_card = new Card();
-                                dealed_card.card = player_card;
-                                dealed_card.player_id = player.ID;
-
-                                possible_card = new PossibleCards();
-                                possible_card.card = dealed_card.card + " - (DEALT CARD AT BEGINING OF GAME)";
-                                possible_card.player_id = player.ID;
-                                player.PossibleCards.Add(possible_card);
-
-                                player.Cards.Add(dealed_card);
-
-                                cards_list.Remove(player_card);
-
-                                old_card = player_card;
-                            }
-                            else
-                            {
-                                random_card = true;
-                                i = i - 1;
-                            }
-                        } while (player_card == null && !random_card);
-
-                        prev_card = player_card;
-                    }
-                }
-
-                foreach (var player in players)
-                {
-                    var list = player.Cards.Where(x => x.player_id == player.ID).ToList();
-                    var card_count = 1;
-                    Console.WriteLine("Dealt Cards for Player : " + player.NAME);
-                    foreach (var card in list)
-                    {
-                        Console.WriteLine("CARD" + card_count + ":" + card.card);
-                        card_count++;
-                    }
-                    Console.WriteLine("-------------------------------");
-                }
-                Console.WriteLine();
-                Console.WriteLine("REMAINING CARDS AFTER PLAYER'S DEAL :" + cards_list.Count());
-                Console.WriteLine("-------------------------------");
-                Console.ReadLine();
-            }
-
-            public static void Table_Cards(int card_num, StartGame game, string card)
+            public static void Set_Table_Cards(int card_num, StartGame game, string card)
             {
                 if (card_num == 1) { game.CARD_1 = card; } else if (card_num == 2) { game.CARD_2 = card; } else { game.CARD_3 = card; }
             }
 
-            public static string SetPlayerName(int player_num)
+            public static string Set_Players_Name(int player_num)
             {
-                if (player_num == 1)
+                switch (player_num)
                 {
-                    return "Neal";
-                }
-                else if (player_num == 2)
-                {
-                    return "Jasmin";
-                }
-                else if (player_num == 3)
-                {
-                    return "Gus";
-                }
-                else if (player_num == 4)
-                {
-                    return "Patric";
-                }
-                else if (player_num == 5)
-                {
-                    return "Mayme";
-                }
-                else if (player_num == 6)
-                {
-                    return "Kyong";
-                }
-                else if (player_num == 7)
-                {
-                    return "Lan";
-                }
-                else if (player_num == 8)
-                {
-                    return "Aldo";
-                }
-                else if (player_num == 9)
-                {
-                    return "Lan";
-                }
-                else
-                {
-                    return "Anisa";
+                    case 1: return "Neal";
+                    case 2: return "Jasmin";
+                    case 3: return "Gus";
+                    case 4: return "Patric";
+                    case 5: return "Mayme";
+                    case 6: return "Kyong";
+                    case 7: return "Lan";
+                    case 8: return "Aldo";
+                    case 9: return "Lan";
+                    case 10: return "Anisa";
+                    default: return "Player_" + player_num.ToString();
                 }
             }
         }
