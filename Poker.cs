@@ -224,6 +224,7 @@ namespace PokerWinning
 
                     var tmp_itm = temp_list[deal_card];
                     temp_list.Remove(tmp_itm);
+                    cards_list.Remove(tmp_itm);
                     count = temp_list.Count();
                     int player_count = players.Count();
 
