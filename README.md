@@ -1,1 +1,3 @@
 # PokerOdds
+Here is my **unfinished code** in C#. I am trying to make a full program so it will take more time. All i have done so far is that computer picks unique card for players and table. You can enter upto 10 players per game. Once the Players are created computer will generate all the possibilities for players.  This code is super messy and repetitive at some places but i will clean it once its finished. There will be a prompt for user to enter cards manually if they wish to do so other wise by default computer will pick all cards. (About to begin calculation for odds). Suggestions are welcome.
+
