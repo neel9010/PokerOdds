@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace PokerWinning
 {
@@ -9,6 +10,7 @@ namespace PokerWinning
         public int ID;
         public string NAME = "";
         public int GAME_WON = 0;
+        public bool R_FLUSH = false;
         public bool S_FLUSH = false;
         public bool FOUR = false;
         public bool FLUSH = false;
@@ -17,20 +19,12 @@ namespace PokerWinning
         public bool TWO_PAIR = false;
         public bool PAIR = false;
         public bool HIGH_CARD = false;
-        public List<Card> Cards = new List<Card>();
+
         public static List<Player> players { get; set; }
+
+        public List<Card> Cards = new List<Card>();
         public List<PossibleCards> PossibleCards = new List<PossibleCards>();
-    }
-
-    public class PossibleCards
-    {
-        public int player_id;
-        public string card = "";
-    }
-
-    public class TableCards
-    {
-        public string card = "";
+        public List<BestCards> BestCards = new List<BestCards>();
     }
 
     public class Card
@@ -39,7 +33,13 @@ namespace PokerWinning
         public string card = "";
     }
 
-    public static class Shuffle
+    public class PossibleCards : Card { }
+
+    public class BestCards : Card { }
+
+    public class TableCards : Card { }
+
+    public static class Extensions
     {
         public static void Shuffle_Deck<T>(this IList<T> list)
         {
@@ -53,6 +53,20 @@ namespace PokerWinning
                 list[k] = list[n];
                 list[n] = value;
             }
+        }
+
+        public static bool RoyalFlush(this List<PossibleCards> list)
+        {
+            int count = 0;
+
+            foreach (var item in list)
+            {
+                var card = item.card.ToString().Substring(0, 1).ToUpper();
+                var match = Regex.Matches(card, @"([A]|[K]|[Q]|[J]|[0])");
+
+                count = match.Count > 0 ? count++ : count;
+            }
+            return count == 5 ? true : false;
         }
     }
 
@@ -341,6 +355,8 @@ namespace PokerWinning
                                 Console.WriteLine(card.card);
                             }
 
+                            Check_Best_Hand(player);
+
                             var deletion_list = player.PossibleCards.Skip(2).ToList();
                             foreach (var pos_card in deletion_list)
                             {
@@ -388,6 +404,14 @@ namespace PokerWinning
                     case 10: return "Anisa";
                     default: return "Player_" + player_num.ToString();
                 }
+            }
+
+            public static void Check_Best_Hand(Player player)
+            {
+                var players_cards = player.PossibleCards.OrderByDescending(x => x.card.ToString()).ToList();
+
+                var royal_list = players_cards.Where(x => x.card.Substring(1, 1) == "D").ToList();
+                player.R_FLUSH = royal_list.Count < 5 ? false : royal_list.RoyalFlush();
             }
         }
     }
