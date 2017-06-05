@@ -55,16 +55,12 @@ namespace PokerWinning
             }
         }
 
-        public static bool RoyalFlush(this List<PossibleCards> list, Player player)
+        public static bool RoyalFlush(this List<PossibleCards> PossibleCards, Player player)
         {
-            int count = 0;
-
-            foreach (var item in list)
+            foreach (var item in PossibleCards)
             {
                 var card = item.card.ToString().Substring(0, 1).ToUpper();
                 var match = Regex.Matches(card, @"([A]|[K]|[Q]|[J]|[0])");
-
-                count = match.Count > 0 ? count++ : count;
 
                 if (match.Count > 0)
                 {
@@ -73,14 +69,14 @@ namespace PokerWinning
                     best_card.card = item.card;
                     player.BestCards.Add(best_card);
                 }
+                else
+                {
+                    player.BestCards.Clear();
+                    return false;
+                }
             }
 
-            if (count < 5)
-            {
-                player.BestCards.Clear();
-            }
-
-            return count == 5 ? true : false;
+            return true;
         }
     }
 
