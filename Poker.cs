@@ -29,8 +29,6 @@ namespace PokerWinning
         public bool PAIR = false;
         public bool HIGH_CARD = false;
 
-        public static List<Player> players { get; set; }
-
         public List<Card> Cards = new List<Card>();
         public List<Card> PossibleCards = new List<Card>();
         public List<Card> BestCards = new List<Card>();
