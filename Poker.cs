@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -86,6 +87,8 @@ namespace PokerWinning
 
         private static void Main(string[] args)
         {
+            Stopwatch sw;
+
             Deck.Initialize_New_Deck(New_Deck);
             Deck.Set_Game_Deck();
 
@@ -105,7 +108,10 @@ namespace PokerWinning
             StartGame.Deal_Table_Cards(input.ToUpper());
             StartGame.Deal_Players_Card(input.ToUpper());
 
+            sw = Stopwatch.StartNew();
             StartGame.Begin_Game();
+            sw.Stop();
+            Console.WriteLine((sw.ElapsedMilliseconds / 1000m).ToString());
 
             Console.Read();
         }
@@ -330,6 +336,8 @@ namespace PokerWinning
                 Console.WriteLine();
                 Console.WriteLine("REMAINING CARDS AFTER PLAYER'S DEAL :" + Game_Deck.Count());
                 Console.WriteLine("-------------------------------");
+
+                Console.Write("Press Any Key to Continue...");
                 Console.ReadLine();
             }
 
@@ -423,8 +431,6 @@ namespace PokerWinning
                     Game_Deck.Shuffle_Deck();
                     count--;
                 } while (count > 0);
-
-                Console.ReadLine();
             }
 
             public static void Set_Table_Cards(int card_num, StartGame game, string card)
