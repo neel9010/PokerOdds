@@ -1,5 +1,3 @@
-//UNFINISHED CODE - WIP
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +5,15 @@ using System.Text.RegularExpressions;
 
 namespace PokerWinning
 {
+    public class Card
+    {
+        public int PLAYER_ID;
+        public string SUIT = "";
+        public string NUMBER = "";
+        public string CARD = "";
+        public string TYPE = "";
+    }
+
     public class Player
     {
         public int ID;
@@ -25,21 +32,9 @@ namespace PokerWinning
         public static List<Player> players { get; set; }
 
         public List<Card> Cards = new List<Card>();
-        public List<PossibleCards> PossibleCards = new List<PossibleCards>();
-        public List<BestCards> BestCards = new List<BestCards>();
+        public List<Card> PossibleCards = new List<Card>();
+        public List<Card> BestCards = new List<Card>();
     }
-
-    public class Card
-    {
-        public int player_id;
-        public string card = "";
-    }
-
-    public class PossibleCards : Card { }
-
-    public class BestCards : Card { }
-
-    public class TableCards : Card { }
 
     public static class Extensions
     {
@@ -57,41 +52,44 @@ namespace PokerWinning
             }
         }
 
-        public static bool RoyalFlush(this List<PossibleCards> PossibleCards, Player player)
+        //NOT TESTED YET (NOT WORKING - TODO)
+        public static bool RoyalFlush(this List<Card> PossibleCards, Player player)
         {
+            int card_count = 0;
             foreach (var item in PossibleCards)
             {
-                var card = item.card.ToString().Substring(0, 1).ToUpper();
+                var card = item.CARD.ToString().Substring(0, 1).ToUpper();
                 var match = Regex.Matches(card, @"([A]|[K]|[Q]|[J]|[0])");
 
                 if (match.Count > 0)
                 {
-                    BestCards best_card = new BestCards();
-                    best_card.player_id = player.ID;
-                    best_card.card = item.card;
+                    Card best_card = new Card();
+                    best_card.PLAYER_ID = player.ID;
                     player.BestCards.Add(best_card);
-                }
-                else
-                {
-                    player.BestCards.Clear();
-                    return false;
+                    card_count++;
                 }
             }
 
-            return true;
+            if (card_count != 5)
+            {
+                player.BestCards.Clear();
+            }
+
+            return card_count == 5 ? true : false;
         }
     }
 
     public class Poker
     {
-        private static string[] New_Deck = new string[52];
-        private static List<TableCards> Table_Cards = new List<TableCards>();
+        private static List<Card> New_Deck = new List<Card>();
+        private static List<Card> Game_Deck = new List<Card>();
+        private static List<Card> Table_Cards = new List<Card>();
         private static List<Player> Players_List = null;
-        private static List<string> Card_Deck = new List<string>();
 
         private static void Main(string[] args)
         {
-            Deck.Initialize(New_Deck);
+            Deck.Initialize_New_Deck(New_Deck);
+            Deck.Set_Game_Deck();
 
             Console.WriteLine("---------------- Welcome to game of Texas Hold'em Poker ----------------");
             Console.WriteLine();
@@ -120,21 +118,22 @@ namespace PokerWinning
             private static int suit_num = 1;
             private static int card_num = 0;
 
-            public static void Initialize(string[] deck)
+            public static void Initialize_New_Deck(List<Card> New_Deck)
             {
                 for (int i = 1; i < 14; i++)
                 {
-                    var current_card = set_card(i) + suit;
-
-                    if (card_num <= deck.Length)
-                    {
-                        deck[card_num] = current_card;
-                    }
+                    Card card = new Card();
+                    card.TYPE = "NewDeck";
+                    card.SUIT = suit;
+                    card.NUMBER = set_card_value(i);
+                    card.CARD = card.NUMBER + card.SUIT;
+                    New_Deck.Add(card);
 
                     if (i == 13)
                     {
                         if (suit_num == 4)
                             break;
+
                         i = 0;
                         suit_num++;
                         suit = set_suit(suit_num);
@@ -144,12 +143,16 @@ namespace PokerWinning
                 }
             }
 
-            private static string set_card(int i)
+            public static void Set_Game_Deck()
+            {
+                Game_Deck = New_Deck;
+            }
+
+            private static string set_card_value(int i)
             {
                 switch (i)
                 {
                     case 1: return "A";
-                    case 10: return "0";
                     case 11: return "J";
                     case 12: return "Q";
                     case 13: return "K";
@@ -192,40 +195,52 @@ namespace PokerWinning
                 }
 
                 Console.WriteLine();
-                Console.WriteLine("TOTAL CARDS IN DECK :" + New_Deck.Length);
+                Console.WriteLine("TOTAL CARDS IN DECK :" + New_Deck.Count());
                 Console.WriteLine("-------------------------------");
             }
 
             public static void Deal_Table_Cards(string autopick = "Y")
             {
-                Card_Deck = New_Deck.ToList();
                 StartGame Game = new StartGame();
 
                 for (int card_num = 1; card_num < 4; card_num++)
                 {
-                    int deal_card;
-                    string table_card = null;
+                    int random_card;
+
+                    Card Card = new Card();
+
+                    string input = null;
+
                     if (autopick.Trim().StartsWith("Y"))
                     {
                         Random r = new Random();
-                        deal_card = r.Next(0, Card_Deck.Count());
-                        table_card = Card_Deck[deal_card];
+                        random_card = r.Next(0, New_Deck.Count());
+                        Card = New_Deck[random_card];
                     }
                     else
                     {
-                        Console.Write("Enter Table Card " + card_num + " : ");
-                        table_card = Console.ReadLine();
+                        Console.Write("Enter Suit (C\\H\\D\\S) " + " : ");
+                        input = Console.ReadLine();
 
-                        table_card = table_card.ToUpper();
+                        Card.SUIT = input;
+
+                        Console.Write("Enter Table Card " + card_num + " : ");
+                        input = Console.ReadLine();
+
+                        Console.WriteLine();
+                        Card.NUMBER = input;
                     }
 
-                    TableCards tablecard = new TableCards();
-                    tablecard.card = table_card;
-                    Table_Cards.Add(tablecard);
+                    Card.CARD = Card.NUMBER + Card.SUIT;
+                    Card.TYPE = "- Visible On Table";
+                    Table_Cards.Add(Card);
 
-                    Set_Table_Cards(card_num, Game, table_card);
-                    Card_Deck.Remove(table_card);
-                    Card_Deck.Shuffle_Deck();
+                    Set_Table_Cards(card_num, Game, Card.CARD);
+
+                    Card used_card = Game_Deck.Where(x => x.CARD == Card.CARD).FirstOrDefault();
+                    Game_Deck.Remove(used_card);
+
+                    Game_Deck.Shuffle_Deck();
                 }
 
                 Console.WriteLine("CARDS ON TABLE");
@@ -234,7 +249,7 @@ namespace PokerWinning
                 Console.WriteLine("CARD 3 : " + Game.CARD_3);
                 Console.WriteLine("-------------------------------");
                 Console.WriteLine();
-                Console.WriteLine("REMAINING CARDS AFTER TABLE DEAL :" + Card_Deck.Count());
+                Console.WriteLine("REMAINING CARDS AFTER TABLE DEAL :" + Game_Deck.Count());
                 Console.WriteLine("-------------------------------");
             }
 
@@ -242,44 +257,72 @@ namespace PokerWinning
             {
                 foreach (var player in Players_List)
                 {
-                    int deal_card;
-                    string player_card = null;
+                    int random_card;
+
+                    string input = "";
 
                     if (!autopick.Trim().StartsWith("Y"))
                     {
                         Console.WriteLine();
                         Console.WriteLine("Enter Cards For " + player.NAME);
+
+                        Console.Write("Enter Suit (C\\H\\D\\S) " + " : ");
+                        input = Console.ReadLine();
                     }
 
                     for (int i = 1; i < 3; i++)
                     {
+                        Card player_card = new Card();
+
                         if (autopick.Trim().StartsWith("Y"))
                         {
                             Random r = new Random();
-                            deal_card = r.Next(0, Card_Deck.Count());
-                            player_card = Card_Deck[deal_card];
+                            random_card = r.Next(0, Game_Deck.Count());
+                            player_card = Game_Deck[random_card];
                         }
                         else
                         {
+                            player_card.SUIT = input;
+
+                            player_card.CARD = player_card.NUMBER + player_card.SUIT;
+
+                            Console.Write("Enter Card Value : ");
+                            input = Console.ReadLine();
+
                             Console.Write("Card " + i + " : ");
-                            player_card = Console.ReadLine();
+                            player_card.NUMBER = Console.ReadLine();
                         }
 
-                        Set_Player_Card(player, player_card);
-                        Card_Deck.Shuffle_Deck();
+                        player_card.TYPE = "- In Player's Hand";
+                        player_card.PLAYER_ID = player.ID;
+                        player.Cards.Add(player_card);
+
+                        Card used_card = Game_Deck.Where(x => x.CARD == player_card.CARD).FirstOrDefault();
+                        Game_Deck.Remove(used_card);
+
+                        Card possible_card;
+                        possible_card = new Card();
+                        possible_card.CARD = player_card.CARD;
+                        possible_card.SUIT = player_card.SUIT;
+                        possible_card.NUMBER = player_card.NUMBER;
+                        possible_card.TYPE = player_card.TYPE;
+                        possible_card.PLAYER_ID = player.ID;
+                        player.PossibleCards.Add(possible_card);
+
+                        Game_Deck.Shuffle_Deck();
                     }
                 }
 
                 foreach (var player in Players_List)
                 {
-                    var player_cards_list = player.Cards.Where(x => x.player_id == player.ID).ToList();
+                    var player_cards_list = player.Cards.Where(x => x.PLAYER_ID == player.ID).ToList();
                     var card_count = 1;
 
                     Console.WriteLine("Dealt Cards for Player : " + player.NAME);
 
                     foreach (var card in player_cards_list)
                     {
-                        Console.WriteLine("CARD" + card_count + ":" + card.card);
+                        Console.WriteLine("CARD" + card_count + ":" + card.CARD);
                         card_count++;
                     }
 
@@ -287,75 +330,66 @@ namespace PokerWinning
                 }
 
                 Console.WriteLine();
-                Console.WriteLine("REMAINING CARDS AFTER PLAYER'S DEAL :" + Card_Deck.Count());
+                Console.WriteLine("REMAINING CARDS AFTER PLAYER'S DEAL :" + Game_Deck.Count());
                 Console.WriteLine("-------------------------------");
                 Console.ReadLine();
             }
 
-            public static void Set_Player_Card(Player player, string player_card)
-            {
-                Card dealed_card;
-                dealed_card = new Card();
-                dealed_card.card = player_card;
-                dealed_card.player_id = player.ID;
-                player.Cards.Add(dealed_card);
-
-                PossibleCards possible_card;
-                possible_card = new PossibleCards();
-                possible_card.card = dealed_card.card + " - (DEALT CARD AT BEGINING OF GAME)";
-                possible_card.player_id = player.ID;
-                player.PossibleCards.Add(possible_card);
-
-                Card_Deck.Remove(player_card);
-                Card_Deck.Shuffle_Deck();
-            }
-
             public static void Begin_Game()
             {
-                List<string> possible_seven = new List<string>();
-                Card_Deck.Shuffle_Deck();
-                var temp_card_list = Card_Deck.ToList();
+                List<Card> possible_seven = new List<Card>();
+                Game_Deck.Shuffle_Deck();
+                var temp_card_list = Game_Deck.ToList();
 
                 var combination = 1;
-                int count = Card_Deck.Count();
+                int count = Game_Deck.Count();
 
                 do
                 {
                     int deal_card;
-                    string hidden_card = "";
+                    Card hidden_card = new Card();
 
                     Random r = new Random();
-                    deal_card = r.Next(0, Card_Deck.Count());
-                    hidden_card = Card_Deck[deal_card];
+                    deal_card = r.Next(0, Game_Deck.Count());
+                    hidden_card = Game_Deck[deal_card];
+                    hidden_card.TYPE = "- First Possible Hidden Card on Table";
                     possible_seven.Add(hidden_card);
 
                     var temp_card = temp_card_list[deal_card];
                     temp_card_list.Remove(temp_card);
-                    Card_Deck.Remove(temp_card);
+
+                    Card used_card = Game_Deck.Where(x => x.CARD == temp_card.CARD).FirstOrDefault();
+                    Game_Deck.Remove(used_card);
 
                     count = temp_card_list.Count();
 
-                    foreach (var Card in Card_Deck.ToList())
+                    foreach (var Card in Game_Deck.ToList())
                     {
                         Console.WriteLine("------------- COMBINATION - " + combination);
                         Console.WriteLine("-------------------------------");
-                        possible_seven.Add(Card);
+
+                        hidden_card = new Card();
+                        hidden_card.CARD = Card.CARD;
+                        hidden_card.TYPE = "- Second Possible Hidden Card on Table";
+                        possible_seven.Add(hidden_card);
 
                         foreach (var player in Players_List)
                         {
                             foreach (var tc_item in Table_Cards)
                             {
-                                PossibleCards possible_card = new PossibleCards();
-                                possible_card.card = tc_item.card + " - (VISIBLE CARD ON TABLE)";
-                                possible_card.player_id = player.ID;
+                                Card possible_card = new Card();
+                                possible_card.CARD = tc_item.CARD;
+                                possible_card.TYPE = tc_item.TYPE;
+                                possible_card.PLAYER_ID = player.ID;
                                 player.PossibleCards.Add(possible_card);
                             }
 
-                            foreach (var card in possible_seven)
+                            foreach (var poss_seven in possible_seven)
                             {
-                                PossibleCards possible_card = new PossibleCards();
-                                possible_card.card = card + " - (HIDDEN CARD ON TABLE)";
-                                possible_card.player_id = player.ID;
+                                Card possible_card = new Card();
+                                possible_card.CARD = poss_seven.CARD;
+                                possible_card.TYPE = poss_seven.TYPE;
+                                possible_card.PLAYER_ID = player.ID;
                                 player.PossibleCards.Add(possible_card);
                             }
 
@@ -364,7 +398,7 @@ namespace PokerWinning
 
                             foreach (var card in player.PossibleCards)
                             {
-                                Console.WriteLine(card.card);
+                                Console.WriteLine(card.CARD + " " + card.TYPE);
                             }
 
                             Check_Best_Hand(player);
@@ -378,8 +412,8 @@ namespace PokerWinning
                             Console.WriteLine("-------------------------------");
                         }
 
-                        possible_seven.Remove(Card);
-                        Card_Deck.Shuffle_Deck();
+                        possible_seven.Remove(hidden_card);
+                        Game_Deck.Shuffle_Deck();
 
                         Console.WriteLine("CARDS LEFT IN DECK - " + (temp_card_list.Count - 1));
                         Console.WriteLine("-------------------------------");
@@ -387,8 +421,8 @@ namespace PokerWinning
                     }
 
                     possible_seven.Clear();
-                    Card_Deck = temp_card_list;
-                    Card_Deck.Shuffle_Deck();
+                    Game_Deck = temp_card_list;
+                    Game_Deck.Shuffle_Deck();
                     count--;
                 } while (count > 0);
 
@@ -420,9 +454,9 @@ namespace PokerWinning
 
             public static void Check_Best_Hand(Player player)
             {
-                var players_cards = player.PossibleCards.OrderByDescending(x => x.card.ToString()).ToList();
+                var players_cards = player.PossibleCards.OrderByDescending(x => x.CARD.ToString()).ToList();
 
-                var royal_list = players_cards.Where(x => x.card.Substring(1, 1) == "D").ToList();
+                var royal_list = players_cards.Where(x => x.CARD.Substring(1, 1) == "D").ToList();
                 player.R_FLUSH = royal_list.Count < 5 ? false : royal_list.RoyalFlush(player);
             }
         }
