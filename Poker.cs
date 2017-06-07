@@ -35,49 +35,6 @@ namespace PokerWinning
         public List<Card> BestCards = new List<Card>();
     }
 
-    public static class Extensions
-    {
-        public static void Shuffle_Deck<T>(this IList<T> list)
-        {
-            int n = list.Count;
-            Random rnd = new Random();
-            while (n > 1)
-            {
-                int k = (rnd.Next(0, n) % n);
-                n--;
-                T value = list[k];
-                list[k] = list[n];
-                list[n] = value;
-            }
-        }
-
-        //NOT TESTED YET (NOT WORKING - TODO)
-        public static bool RoyalFlush(this List<Card> PossibleCards, Player player)
-        {
-            int card_count = 0;
-            foreach (var item in PossibleCards)
-            {
-                var card = item.CARD.ToString().Substring(0, 1).ToUpper();
-                var match = Regex.Matches(card, @"([A]|[K]|[Q]|[J]|[0])");
-
-                if (match.Count > 0)
-                {
-                    Card best_card = new Card();
-                    best_card.PLAYER_ID = player.ID;
-                    player.BestCards.Add(best_card);
-                    card_count++;
-                }
-            }
-
-            if (card_count != 5)
-            {
-                player.BestCards.Clear();
-            }
-
-            return card_count == 5 ? true : false;
-        }
-    }
-
     public class Poker
     {
         private static List<Card> New_Deck = new List<Card>();
@@ -152,10 +109,11 @@ namespace PokerWinning
                 Game_Deck = New_Deck;
             }
 
-            private static string set_card_value(int i)
+            public static string set_card_value(int i)
             {
                 switch (i)
                 {
+                    case 0: return "10";
                     case 1: return "A";
                     case 11: return "J";
                     case 12: return "Q";
@@ -226,13 +184,13 @@ namespace PokerWinning
                         Console.Write("Enter Suit (C\\H\\D\\S) " + " : ");
                         input = Console.ReadLine();
 
-                        Card.SUIT = input;
+                        Card.SUIT = input.ToUpper();
 
                         Console.Write("Enter Table Card " + card_num + " : ");
                         input = Console.ReadLine();
 
+                        Card.NUMBER = Deck.set_card_value(int.Parse(input)).ToString(); ;
                         Console.WriteLine();
-                        Card.NUMBER = input;
                     }
 
                     Card.CARD = Card.NUMBER + Card.SUIT;
@@ -264,14 +222,14 @@ namespace PokerWinning
                     int random_card;
 
                     string input = "";
-
+                    string suit = "";
                     if (!autopick.Trim().StartsWith("Y"))
                     {
                         Console.WriteLine();
                         Console.WriteLine("Enter Cards For " + player.NAME);
 
                         Console.Write("Enter Suit (C\\H\\D\\S) " + " : ");
-                        input = Console.ReadLine();
+                        suit = Console.ReadLine();
                     }
 
                     for (int i = 1; i < 3; i++)
@@ -286,15 +244,13 @@ namespace PokerWinning
                         }
                         else
                         {
-                            player_card.SUIT = input;
-
-                            player_card.CARD = player_card.NUMBER + player_card.SUIT;
-
-                            Console.Write("Enter Card Value : ");
-                            input = Console.ReadLine();
+                            player_card.SUIT = suit.ToUpper();
 
                             Console.Write("Card " + i + " : ");
-                            player_card.NUMBER = Console.ReadLine();
+                            input = Console.ReadLine();
+                            player_card.NUMBER = Deck.set_card_value(int.Parse(input)).ToString();
+
+                            player_card.CARD = player_card.NUMBER + player_card.SUIT;
                         }
 
                         player_card.TYPE = "- In Player's Hand";
@@ -384,7 +340,7 @@ namespace PokerWinning
                             foreach (var tc_item in Table_Cards)
                             {
                                 Card possible_card = new Card();
-                                possible_card.CARD = tc_item.CARD;
+                                possible_card = tc_item;
                                 possible_card.TYPE = tc_item.TYPE;
                                 possible_card.PLAYER_ID = player.ID;
                                 player.PossibleCards.Add(possible_card);
@@ -393,7 +349,7 @@ namespace PokerWinning
                             foreach (var poss_seven in possible_seven)
                             {
                                 Card possible_card = new Card();
-                                possible_card.CARD = poss_seven.CARD;
+                                possible_card = poss_seven;
                                 possible_card.TYPE = poss_seven.TYPE;
                                 possible_card.PLAYER_ID = player.ID;
                                 player.PossibleCards.Add(possible_card);
@@ -456,13 +412,189 @@ namespace PokerWinning
                 }
             }
 
+            //TODO Not the best way to do it and incomplete
             public static void Check_Best_Hand(Player player)
             {
                 var players_cards = player.PossibleCards.OrderByDescending(x => x.CARD.ToString()).ToList();
 
-                var royal_list = players_cards.Where(x => x.CARD.Substring(1, 1) == "D").ToList();
+                var royal_list = players_cards.Where(x => x.SUIT == "D").ToList();
                 player.R_FLUSH = royal_list.Count < 5 ? false : royal_list.RoyalFlush(player);
+
+                //Checks Royal Flush
+                if (player.R_FLUSH)
+                {
+                    player.GAME_WON++;
+                    return;
+                }
+
+                //Checks Straight Flush
+                player.S_FLUSH = players_cards.StraightSuit(player);
+                if (player.S_FLUSH)
+                    return;
+
+                //Checks Four of Kind
+                player.FOUR = players_cards.Four_of_kind(player);
+                if (player.FOUR)
+                    return;
+
+                //Checks Flush
+                player.FLUSH = players_cards.Flush(player);
+                if (player.FLUSH)
+                    return;
+
+                //TODO Straight
+
+                //Checks Three of Kind
+                player.THREE = players_cards.Three_of_kind(player);
+
+                //TODO Two Pairs
+
+                //TODO Pairs
+
+                //Checks High Card  if non of the above
+                player.HIGH_CARD = players_cards.High_card(player);
             }
+        }
+    }
+
+    public static class Extensions
+    {
+        public static void Shuffle_Deck<T>(this IList<T> list)
+        {
+            int n = list.Count;
+            Random rnd = new Random();
+            while (n > 1)
+            {
+                int k = (rnd.Next(0, n) % n);
+                n--;
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+        }
+
+        public static bool RoyalFlush(this List<Card> PossibleCards, Player player)
+        {
+            int card_count = 0;
+            foreach (var card in PossibleCards)
+            {
+                var match = Regex.Matches(card.NUMBER.ToUpper(), @"([A]|[K]|[Q]|[J]|[10])");
+
+                if (match.Count > 0)
+                {
+                    Add_Best_Cards(card, player);
+                    card_count++;
+                }
+            }
+
+            if (card_count != 5)
+            {
+                player.BestCards.Clear();
+            }
+
+            return card_count == 5 ? true : false;
+        }
+
+        public static bool StraightSuit(this List<Card> PossibleCards, Player player)
+        {
+            int dimond_count = PossibleCards.Where(x => x.SUIT == "D").Count();
+            int heart_count = PossibleCards.Where(x => x.SUIT == "H").Count();
+            int club_count = PossibleCards.Where(x => x.SUIT == "C").Count();
+            int spade_count = PossibleCards.Where(x => x.SUIT == "S").Count();
+
+            string suit = dimond_count > 4 ? "D" : heart_count > 4 ? "H" : club_count > 4 ? "C" : spade_count > 4 ? "S" : "";
+
+            var straight_list = PossibleCards.Where(x => x.SUIT == suit).Take(5).ToList();
+
+            foreach (var card in straight_list)
+            {
+                Add_Best_Cards(card, player);
+            }
+
+            return straight_list.Count > 4 ? true : false;
+        }
+
+        public static bool Four_of_kind(this List<Card> PossibleCards, Player player)
+        {
+            var check_list = PossibleCards.ToList();
+
+            foreach (var check_card in check_list)
+            {
+                var temp_list = PossibleCards.Where(x => x.NUMBER == check_card.NUMBER).ToList();
+
+                if (temp_list.Count() >= 4)
+                {
+                    foreach (var card in temp_list.Take(5))
+                    {
+                        Add_Best_Cards(card, player);
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool Three_of_kind(this List<Card> PossibleCards, Player player)
+        {
+            var check_list = PossibleCards.ToList();
+
+            foreach (var check_card in check_list)
+            {
+                var temp_list = PossibleCards.Where(x => x.NUMBER == check_card.NUMBER).ToList();
+
+                if (temp_list.Count() >= 3)
+                {
+                    foreach (var card in temp_list.Take(5))
+                    {
+                        Add_Best_Cards(card, player);
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool Flush(this List<Card> PossibleCards, Player player)
+        {
+            var check_list = PossibleCards.ToList();
+
+            foreach (var check_card in check_list)
+            {
+                var temp_list = PossibleCards.Where(x => x.SUIT == check_card.SUIT).ToList();
+
+                if (temp_list.Count() >= 4)
+                {
+                    foreach (var card in temp_list.Take(5))
+                    {
+                        Add_Best_Cards(card, player);
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool High_card(this List<Card> PossibleCards, Player player)
+        {
+            foreach (var card in PossibleCards.Take(5))
+            {
+                Add_Best_Cards(card, player);
+            }
+
+            return true;
+        }
+
+        public static void Add_Best_Cards(Card card, Player player)
+        {
+            Card best_card = new Card();
+            best_card = card;
+            player.BestCards.Add(best_card);
         }
     }
 }
